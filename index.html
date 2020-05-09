@@ -6,7 +6,6 @@
         <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
         <script src="./scripts.js"></script>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <style>
             [x-cloak] {
@@ -87,6 +86,9 @@
                         newData[key]  = Formatter[div](newData[key])
                     } 
                 }
+
+                const canvas = document.querySelector(div)
+                var ctx = canvas.getContext('2d');
 
                 if (window[`chart_${div}`]) {
                     window[`chart_${div}`].destroy()
