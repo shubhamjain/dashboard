@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Personal Dashboard</title>
+        <link rel="stylesheet" href="https://use.typekit.net/fub2ewc.css">
+        <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+        <script src="./scripts.js"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <style>
+            [x-cloak] {
+                display: none;
+            }
+
+            h1, h2, nav {
+                font-family: objektiv-mk1, sans-serif;
+                font-weight: 400;
+            }
+        </style>
+        <script>
+
+            const Transform = {
+                "DAY": "%b %d, '%y",
+                "MONTH": "%b '%y",
+                "WEEK": "Week %V '%y"
+            }
+
+            async function loadUnlocksData () {
+                const req = await fetch('https://sj-bucket.s3.fr-par.scw.cloud/unlocks.csv')
+                return req.text()
+            }
+
+            async function loadTimespentData () {
+                const req = await fetch('https://sj-bucket.s3.fr-par.scw.cloud/timespent.csv')
+                return req.text()
+            }
+
+            const Formatter = {
+                "#timespent": (val) => {
+                    return (val / 1000 / 60 / 60).toFixed(1)
+                }
+            }
+
+
+            function visualize(div, dataToVisualize, type = "DAY") {
+                document.querySelector(div + "-sib").removeAttribute("x-cloak")
+                const dataSplit = dataToVisualize.split('\n').slice(1)
+                const newData = {}
+                
+                const ACTIVE_KEY = "bg-white px-4 rounded-full py-1 cursor-pointer font-bold";
+                const INACTIVE_KEY = "px-4 text-gray-500 py-1 cursor-pointer";
+
+                Array.from(document.querySelectorAll(div + "-sib [data-key]")).forEach((el) => {
+                    if (el.getAttribute("data-key") === type) {
+                        el.className = ACTIVE_KEY
+                    } else {
+                        el.className = INACTIVE_KEY
+                    }
+
+                    if (el.getAttribute("data-key") === "DAY") {
+                        el.className += " -ml-3"
+                    } else if (el.getAttribute("data-key") === "MONTH") {
+                        el.className += " -mr-3"
+                    }
+                })
+
+                for (const dataItem of dataSplit) {
+                    const split = dataItem.split(",");
+
+                    if (!split[0]) {
+                        break;
+                    }
+
+                    const date = strftime(Transform[type], new Date(split[0]));
+
+                    if (!newData[date]) {
+                        newData[date] = 0
+                    }
+
+                    newData[date] += split[1] * 1
+                }
+
+
+                if (Formatter[div]) {
+                    for (const key in newData) {
+                        newData[key]  = Formatter[div](newData[key])
+                    } 
+                }
+
+                if (window[`chart_${div}`]) {
+                    window[`chart_${div}`].destroy()
+                }
+
+                window[`chart_${div}`] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(newData),
+                        datasets: [{
+                            backgroundColor: "rgba(50, 128, 206, .7)",
+                            hoverBackgroundColor:  "rgba(50, 128, 206, 1)",
+                            borderColor: "rgba(50, 128, 206, .6)",
+                            data: Object.values(newData)
+                        }]
+                    },
+
+                    options: {
+                        scales: {
+                            xAxes: [{
+                            ticks: {
+                                autoSkip: true,
+                                maxTicksLimit: 40
+                            }
+                        }],
+                        },
+
+                        legend: {
+                            display: false
+                        }
+                    }
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', async () => {
+                window.unlocksData = await loadUnlocksData()
+                window.timespentData = await loadTimespentData()
+
+
+                visualize("#unlocks", unlocksData, "DAY");
+                visualize("#timespent", timespentData, "DAY");
+            })
+        </script>
+    </head>
+    <body class="bg-gray-200">
+        <div class="p-4 max-w-4xl mx-auto">
+            <div class="md:mt-16 mb-12 bg-blue-600 py-4 px-4  rounded-lg">
+                <h1 class="text-3xl font-bold text-white tracking-tight" id="heading">
+                    Personal Dashboard
+                </h1>
+                <h2 class="text-blue-300 font-medium tracking-tight">
+                    An attempt to monitor my life. 
+                </h2>
+            </div>
+            <h2 class="font-bold text-2xl mb-4 text-right text-gray-900 tracking-tight">Phone Usage Stats</h2>
+            <div class="bg-white px-10 py-6 rounded mb-8 shadow">
+                <div class="flex justify-between items-center mb-6" id="unlocks-sib" x-cloak>
+                    <h2 class="text-lg font-medium">No. of Phone Unlocks</h2>
+                    <nav class="bg-gray-200 px-4 rounded-full text-xs flex items-center justify-right py-1 tracking-tight">
+                        <a onclick="visualize('#unlocks', unlocksData, 'DAY')" data-key="DAY">Day</a>
+                        <a onclick="visualize('#unlocks', unlocksData, 'WEEK')" data-key="WEEK">Week</a>
+                        <a onclick="visualize('#unlocks', unlocksData, 'MONTH')" data-key="MONTH">Month</a>
+                    </nav>
+                </div>
+                <canvas id="unlocks"></canvas>
+            </div>
+            <div class="bg-white px-10 py-6 rounded mb-12 shadow">
+                <div class="mb-6 flex justify-between items-center" id="timespent-sib" x-cloak>
+                    <h2 class="text-lg font-medium">Time Spent on Phone (in Hours)</h2>
+                    <nav class="bg-gray-200 px-4 rounded-full text-xs flex items-center justify-right py-1 tracking-tight">
+                        <a onclick="visualize('#timespent', timespentData, 'DAY')" data-key="DAY">Day</a>
+                        <a onclick="visualize('#timespent', timespentData, 'WEEK')" data-key="WEEK">Week</a>
+                        <a onclick="visualize('#timespent', timespentData, 'MONTH')" data-key="MONTH">Month</a>
+                    </nav>
+                </div>
+                <canvas id="timespent"></canvas>
+            </div>
+        </div>
+    </body>
+</html>
