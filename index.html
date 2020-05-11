@@ -41,9 +41,12 @@
                 }
             }
 
+            Chart.defaults.global.defaultFontFamily = "'objektiv-mk1', sans-serif";
+
 
             function visualize(div, dataToVisualize, type = "DAY") {
                 document.querySelector(div + "-sib").removeAttribute("x-cloak")
+
                 const dataSplit = dataToVisualize.split('\n').slice(1)
                 const newData = {}
                 
