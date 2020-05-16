@@ -35,8 +35,16 @@
                 return req.text()
             }
 
+            async function loadMacTimespentData () {
+                const req = await fetch('https://sj-bucket.s3.fr-par.scw.cloud/mac_screentime.csv')
+                return req.text()
+            }
+
             const Formatter = {
                 "#timespent": (val) => {
+                    return (val / 1000 / 60 / 60).toFixed(1)
+                },
+                "#mactimespent": (val) => {
                     return (val / 1000 / 60 / 60).toFixed(1)
                 }
             }
@@ -67,6 +75,14 @@
                     }
                 })
 
+
+                const baseDate = new Date(Date.now() - 60 * 60 * 24 * 1000 * 30 * 2); 
+
+                for (let d = baseDate; d <= new Date(); d.setDate(d.getDate() + 1)) {
+                    const date = strftime(Transform[type], new Date(d));
+                    newData[date] = 0;
+                }  
+
                 for (const dataItem of dataSplit) {
                     const split = dataItem.split(",");
 
@@ -75,10 +91,6 @@
                     }
 
                     const date = strftime(Transform[type], new Date(split[0]));
-
-                    if (!newData[date]) {
-                        newData[date] = 0
-                    }
 
                     newData[date] += split[1] * 1
                 }
@@ -129,10 +141,11 @@
             document.addEventListener('DOMContentLoaded', async () => {
                 window.unlocksData = await loadUnlocksData()
                 window.timespentData = await loadTimespentData()
-
+                window.macTimespentData = await loadMacTimespentData()
 
                 visualize("#unlocks", unlocksData, "DAY");
                 visualize("#timespent", timespentData, "DAY");
+                visualize("#mactimespent", macTimespentData, "DAY");
             })
         </script>
     </head>
@@ -146,7 +159,7 @@
                     An attempt to monitor my life. 
                 </h2>
             </div>
-            <h2 class="font-bold text-2xl mb-4 text-right text-gray-900 tracking-tight">Phone Usage Stats</h2>
+            <h2 class="font-bold text-2xl mb-4 text-right text-gray-900 tracking-tight">Device Usage Stats</h2>
             <div class="bg-white px-10 py-6 rounded mb-8 shadow">
                 <div class="flex justify-between items-center mb-6" id="unlocks-sib" x-cloak>
                     <h2 class="text-lg font-medium">No. of Phone Unlocks</h2>
@@ -168,6 +181,17 @@
                     </nav>
                 </div>
                 <canvas id="timespent"></canvas>
+            </div>
+            <div class="bg-white px-10 py-6 rounded mb-12 shadow">
+                <div class="mb-6 flex justify-between items-center" id="mactimespent-sib" x-cloak>
+                    <h2 class="text-lg font-medium">Time Spent on Phone (in Hours)</h2>
+                    <nav class="bg-gray-200 px-4 rounded-full text-xs flex items-center justify-right py-1 tracking-tight">
+                        <a onclick="visualize('#mactimespent', macTimespentData, 'DAY')" data-key="DAY">Day</a>
+                        <a onclick="visualize('#mactimespent', macTimespentData, 'WEEK')" data-key="WEEK">Week</a>
+                        <a onclick="visualize('#mactimespent', macTimespentData, 'MONTH')" data-key="MONTH">Month</a>
+                    </nav>
+                </div>
+                <canvas id="mactimespent"></canvas>
             </div>
         </div>
     </body>
